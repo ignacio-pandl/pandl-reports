@@ -130,6 +130,17 @@ tr:hover td { background: var(--bg-card-hover); }
     max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     font-size: 12px; color: var(--text-secondary);
 }
+.product-img {
+    width: 36px; height: 36px; object-fit: contain; border-radius: 4px;
+    background: white; border: 1px solid var(--border); vertical-align: middle;
+}
+.product-img-link { display: inline-block; line-height: 0; }
+.product-img-link:hover .product-img { border-color: var(--cyclone); box-shadow: 0 0 0 2px var(--cyclone-bg); }
+.product-img-placeholder {
+    display: inline-block; width: 36px; height: 36px; line-height: 36px;
+    text-align: center; background: var(--bg-card-hover); border-radius: 4px;
+    color: var(--text-secondary); font-size: 14px; border: 1px solid var(--border);
+}
 
 /* Scatter */
 .scatter-container { height: 400px; }
@@ -383,6 +394,11 @@ function renderProductTable() {
     });
     const table = document.getElementById('product-table');
     const cols = [
+        { key: 'image', label: '', fmt: (v, p) => {
+            const url = 'https://www.amazon.com/dp/' + p.asin;
+            const img = p.image ? `<img src="${p.image}" class="product-img" alt="">` : '<span class="product-img-placeholder">?</span>';
+            return `<a href="${url}" target="_blank" rel="noopener" class="product-img-link">${img}</a>`;
+        } },
         { key: 'brand', label: 'Brand', fmt: v => v },
         { key: 'title', label: 'Product', fmt: v => `<span class="product-title" title="${v}">${v}</span>` },
         { key: 'price', label: 'Price', fmt: v => v ? fmt$(v) : '-' },
@@ -406,10 +422,12 @@ function renderProductTable() {
         const cls = p.is_cyclone ? 'cyclone' : 'other';
         html += '<tr>';
         cols.forEach(c => {
-            if (c.key === 'brand') {
+            if (c.key === 'image') {
+                html += `<td>${c.fmt(p[c.key], p)}</td>`;
+            } else if (c.key === 'brand') {
                 html += `<td><span class="brand-tag ${cls}">${p.brand}</span></td>`;
             } else {
-                html += `<td>${c.fmt(p[c.key])}</td>`;
+                html += `<td>${c.fmt(p[c.key], p)}</td>`;
             }
         });
         html += '</tr>';
