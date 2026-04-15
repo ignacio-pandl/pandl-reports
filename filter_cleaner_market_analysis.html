@@ -313,36 +313,55 @@ function filterMonthlyByRange(ms, range) {
     });
 }
 
+// ── Compute dynamic stats from timeseries for current range ──
+function computeStats() {
+    const cTS = filterByRange(TS.cyclone, currentRange);
+    const mTS = filterByRange(TS.market, currentRange);
+    const cyclone_rev = cTS.reduce((s, r) => s + r.revenue, 0);
+    const market_rev = mTS.reduce((s, r) => s + r.revenue, 0);
+    const category_rev = cyclone_rev + market_rev;
+    const cyclone_units = cTS.reduce((s, r) => s + r.units, 0);
+    const market_units = mTS.reduce((s, r) => s + r.units, 0);
+    const category_units = cyclone_units + market_units;
+    const ratio = cyclone_rev > 0 ? (category_rev / cyclone_rev).toFixed(1) : '—';
+    const share_rev = category_rev > 0 ? (cyclone_rev / category_rev * 100).toFixed(1) : '0.0';
+    const rangeLabel = currentRange === 'all' ? 'All time' : `Last ${currentRange} days`;
+    return { cyclone_rev, market_rev, category_rev, cyclone_units, market_units, category_units, ratio, share_rev, rangeLabel };
+}
+
 // ── Executive Summary ──
 function renderExec() {
+    const s = computeStats();
     const el = document.getElementById('exec-summary');
     el.innerHTML = `
         <div class="ratio-label">Category Total Revenue is</div>
-        <div class="ratio">${SUMMARY.ratio}x</div>
+        <div class="ratio">${s.ratio}x</div>
         <div class="ratio-label">Cyclone's Revenue</div>
         <div class="ratio-detail">
-            Category total: ${fmtK$(SUMMARY.category_revenue)} &middot;
-            Cyclone: ${fmtK$(SUMMARY.cyclone_revenue)} &middot;
-            Rest of market: ${fmtK$(SUMMARY.market_revenue)}
+            Category total: ${fmtK$(s.category_rev)} &middot;
+            Cyclone: ${fmtK$(s.cyclone_rev)} &middot;
+            Rest of market: ${fmtK$(s.market_rev)}
         </div>
     `;
 }
 
 // ── KPIs ──
 function renderKPIs() {
+    const s = computeStats();
     const el = document.getElementById('kpi-grid');
     el.innerHTML = `
         <div class="kpi"><div class="value">${SUMMARY.total_products}</div><div class="label">Products Tracked</div><div class="sub">${SUMMARY.total_brands} brands</div></div>
-        <div class="kpi"><div class="value">${fmtK$(SUMMARY.category_revenue)}</div><div class="label">Category Revenue</div><div class="sub">Est. since March 2025</div></div>
-        <div class="kpi cyclone"><div class="value">${SUMMARY.cyclone_share_revenue}%</div><div class="label">Cyclone Revenue Share</div><div class="sub">${fmtK$(SUMMARY.cyclone_revenue)}</div></div>
+        <div class="kpi"><div class="value">${fmtK$(s.category_rev)}</div><div class="label">Category Revenue</div><div class="sub">${s.rangeLabel}</div></div>
+        <div class="kpi cyclone"><div class="value">${s.share_rev}%</div><div class="label">Cyclone Revenue Share</div><div class="sub">${fmtK$(s.cyclone_rev)}</div></div>
         <div class="kpi"><div class="value">${fmt$(SUMMARY.avg_price_category)}</div><div class="label">Avg Category Price</div><div class="sub">Cyclone: ${fmt$(SUMMARY.avg_price_cyclone)}</div></div>
     `;
 }
 
 // ── Share Bar ──
 function renderShareBar() {
+    const s = computeStats();
     const el = document.getElementById('share-bar');
-    const cs = SUMMARY.cyclone_share_revenue;
+    const cs = parseFloat(s.share_rev);
     const ms = (100 - cs).toFixed(1);
     el.innerHTML = `
         <div class="share-bar">
@@ -350,8 +369,8 @@ function renderShareBar() {
             <div class="market-share" style="width:${ms}%">${ms}%</div>
         </div>
         <div class="share-legend">
-            <span><span class="dot" style="background:var(--cyclone)"></span> Cyclone (${fmtK$(SUMMARY.cyclone_revenue)})</span>
-            <span><span class="dot" style="background:var(--market)"></span> Rest of Market (${fmtK$(SUMMARY.market_revenue)})</span>
+            <span><span class="dot" style="background:var(--cyclone)"></span> Cyclone (${fmtK$(s.cyclone_rev)})</span>
+            <span><span class="dot" style="background:var(--market)"></span> Rest of Market (${fmtK$(s.market_rev)})</span>
         </div>
     `;
 }
@@ -715,6 +734,9 @@ function setRange(range, btn) {
     currentRange = range;
     document.querySelectorAll('.time-range-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
+    renderExec();
+    renderKPIs();
+    renderShareBar();
     buildCharts();
 }
 
