@@ -182,8 +182,10 @@ table {
     background: var(--bg-card);
     margin-bottom: 0;
 }
+#product-table { table-layout: fixed; min-width: 1050px; }
 .table-wrapper table { border: none; border-radius: 0; }
-th, td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th, td { padding: 10px 14px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+td.col-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; }
 th {
     background: var(--bg-card-hover); font-weight: 600; font-size: 10px;
     text-transform: uppercase; letter-spacing: 0.8px; position: sticky; top: 0; z-index: 1;
@@ -504,7 +506,14 @@ function renderProductTable() {
         { key: 'avg_daily_revenue', label: 'Avg $/day', fmt: v => fmt$(v) },
     ];
 
-    let html = '<thead><tr>';
+    // Column widths: image, brand, title (flexible), then data cols
+    let html = '<colgroup>';
+    const colWidths = { image: '50px', brand: '100px', title: '', price: '75px', bsr: '85px', monthly_units: '75px', rating: '65px', reviews: '75px', total_revenue: '95px', total_units: '80px', avg_daily_revenue: '85px' };
+    cols.forEach(c => {
+        const w = colWidths[c.key];
+        html += w ? `<col style="width:${w}">` : '<col>';
+    });
+    html += '</colgroup><thead><tr>';
     cols.forEach(c => {
         const arrow = sortCol === c.key ? (sortDir === 1 ? '\u25B2' : '\u25BC') : '';
         html += `<th onclick="sortTable('${c.key}')">${c.label}<span class="sort-arrow">${arrow}</span></th>`;
@@ -519,6 +528,8 @@ function renderProductTable() {
                 html += `<td>${c.fmt(p[c.key], p)}</td>`;
             } else if (c.key === 'brand') {
                 html += `<td><span class="brand-tag ${cls}">${p.brand}</span></td>`;
+            } else if (c.key === 'title') {
+                html += `<td class="col-title" title="${p[c.key]}">${p[c.key]}</td>`;
             } else {
                 html += `<td>${c.fmt(p[c.key], p)}</td>`;
             }
